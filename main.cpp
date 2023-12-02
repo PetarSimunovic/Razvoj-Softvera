@@ -1,11 +1,15 @@
 #include <SFML/Graphics.hpp>
-#include "kretanje.cpp"
+#include <iostream>
+
 
 int main()
 {
     // Visina i širina prozora
     int screenWidth = 1000;
     int screenHeight = 800;
+
+    // Sat za delta time
+    sf::Clock deltaClock;
 
     // Renderiranje prozora
     sf::RenderWindow window(sf::VideoMode(screenWidth, screenHeight), "Window text");
@@ -26,22 +30,25 @@ int main()
     while (window.isOpen())
     {
         sf::Event event;
+        
+        // Dobivamo vrijeme između slićica po sekundi
+        float dt = deltaClock.restart().asSeconds();
+
+        // Kod za kretanje
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)){
+            igrac.move(0.f,-100.f * dt);
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)){
+            igrac.move(0.f,100.f * dt);
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
+            igrac.move(-100.f * dt,0.f);
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)){
+            igrac.move(100.f * dt,0.f);
+        }
         while (window.pollEvent(event))
         {
-            // TODO: Dodaj delta time (ako iz nekog razloga nas lik ubrzava delta time ce nam to rijesiti)
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)){
-                igrac.move(0.f,-5.f);
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)){
-                igrac.move(0.f,5.f);
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
-                igrac.move(-5.f,0.f);
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)){
-                igrac.move(5.f,0.f);
-            }
-
             if (event.type == sf::Event::Closed)
                 window.close();
         }
