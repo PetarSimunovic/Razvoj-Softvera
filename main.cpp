@@ -1,5 +1,5 @@
 #include <SFML/Graphics.hpp>
-#include <iostream>
+#include "math.h"
 
 
 int main()
@@ -20,12 +20,22 @@ int main()
     privermenaTekstura.loadFromFile("PrivermenaTextura.png");
     privermenaTekstura.setSmooth(true);
 
+    // S ovime centriramo kameru na igraća
+    sf::View center;
+    
     // Novi sprite igrac ako ti Mihelec zatreba negdje drugdje u programu samo mo mi reci da ga globaliziram ;) 
     sf::Sprite igrac;
-    igrac.setTexture(privermenaTekstura);
     igrac.setOrigin(100.f,100.f);
+    igrac.setTexture(privermenaTekstura);
     igrac.setPosition(screenHeight/2, screenWidth/2);
-    
+
+    // Sprite file to ćemo morati zaštititi od virusa
+    sf::Sprite file;
+    file.setTexture(privermenaTekstura);
+    file.setOrigin(100.f,100.f);
+    file.setPosition(screenHeight/2, screenWidth/2);
+    file.setColor(sf::Color::Yellow);   
+
 
     while (window.isOpen())
     {
@@ -36,24 +46,29 @@ int main()
 
         // Kod za kretanje
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)){
-            igrac.move(0.f,-100.f * dt);
+            igrac.move(0.f,-500.f * dt);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)){
-            igrac.move(0.f,100.f * dt);
+            igrac.move(0.f,500.f * dt);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
-            igrac.move(-100.f * dt,0.f);
+            igrac.move(-500.f * dt,0.f);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)){
-            igrac.move(100.f * dt,0.f);
+            igrac.move(500.f * dt,0.f);
         }
+
         while (window.pollEvent(event))
         {
             if (event.type == sf::Event::Closed)
                 window.close();
         }
+        
 
-        window.clear();
+        center.setCenter(igrac.getPosition());
+        window.clear(sf::Color::Blue);
+        window.setView(center);
+        window.draw(file);
         window.draw(igrac);
         window.display();
     }
