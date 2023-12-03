@@ -28,6 +28,7 @@ int main()
     igrac.setOrigin(100.f,100.f);
     igrac.setTexture(privermenaTekstura);
     igrac.setPosition(screenHeight/2, screenWidth/2);
+    igrac.setRotation(0);
 
     // Sprite file to ćemo morati zaštititi od virusa
     sf::Sprite file;
@@ -36,6 +37,11 @@ int main()
     file.setPosition(screenHeight/2, screenWidth/2);
     file.setColor(sf::Color::Yellow);   
 
+
+    sf::Vector2i pozicijaMisa; // Vektor 2 int
+    sf::Vector2f pozicijaIgraca; // Vektor 2 float
+    float kut;
+    double misX, misB;
 
     while (window.isOpen())
     {
@@ -64,6 +70,12 @@ int main()
                 window.close();
         }
         
+        // Ovaj kod sam shvatio 1/10 ali radi!!! hip hip hura!
+        float dX = window.mapPixelToCoords(sf::Mouse::getPosition(window)).x - igrac.getPosition().x;
+        float dY = window.mapPixelToCoords(sf::Mouse::getPosition(window)).y - igrac.getPosition().y;
+
+        float angle = (atan2(dY, dX)*180)/3.14159;
+        igrac.setRotation(angle + 90);
 
         center.setCenter(igrac.getPosition());
         window.clear(sf::Color::Blue);
