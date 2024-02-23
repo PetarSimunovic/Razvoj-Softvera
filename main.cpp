@@ -1,3 +1,7 @@
+/*Par stvari još trebam dodati a posebno resizanje svega jer kada promjenim velićinu prozora sve se strecha linija:340, 
+virusi se čudno tresu i miću linja:370
+gumb za reset je pre malen jer martin mijenja rezlouciju foramte i ostale stvari
+*/
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include <iostream>
@@ -48,11 +52,9 @@ int main()
     // Sat za delta time
     sf::Clock deltaClock;
     sf::Clock randomSpawn;
-
     sf::Clock respawn;
 
     sf::Clock firerate;
-    sf::Time elapsed;
     bool firedFirstTime=0;
     bool controlCounter=0;
 
@@ -61,14 +63,18 @@ int main()
     bool virusFiredFirstTime=0;
     bool virusControlCounter=0;
    
+    sf::Time respawnTime;
+
     sf::Clock invFrames;
+    sf::Clock timer;
    
     sf::Font font;
     font.loadFromFile("Arial.ttf");
 
     sf::Text umro;
     umro.setFont(font);
-    umro.setString("Izgubio si sve svoje životne bodove");
+    umro.setString(L"Umro si! Dok je još file živ biti ćeš oživljen za 5 sekunda");
+    umro.setOrigin(umro.getLocalBounds().width / 2.0f,umro.getLocalBounds().height / 2.0f);
     umro.setCharacterSize(24);
     umro.setFillColor(sf::Color::Red);
 
@@ -82,11 +88,19 @@ int main()
     
     sf::Text kakoIgrati;
     kakoIgrati.setFont(font);
-    kakoIgrati.setString(L"Sa tipkama w,a,s,d se krećeš gore,dolje\n,desno,lijevo, a sa lijevim tipkom miša igraš,\n imaš 3 života i ako ih izgubiš moraš ćekati pet\n sekundi da se ponovo stvoriš, moraš zaštititi \n file od zlih virusa");
+    kakoIgrati.setString(L"Pomoću tipki W, A, S, D igrač se kreće gore,\ndolje, lijevo, desno. Pritiskom lijevog klika na \nmišu igrač puca. Imate ukupno 3\nživota koja, kad se izgube, trebate pričekat \ni 5 sekundi kako bi oživjeli. Vaš glavni zadatak \nkao igrač je zaštiti datoteku od zlih virusa.");
     kakoIgrati.setFillColor(sf::Color::White);
     kakoIgrati.setCharacterSize(24);
 
-    // Učitamo teksturu igraca stavimo "setSmooth" na true za anti-aliasing (Josipe guglaj to)
+    sf::Text gameOver;
+    gameOver.setFont(font);
+    gameOver.setString(L"File je zaražen od virusa.Ponovo?");
+    gameOver.setFillColor(sf::Color::Red);
+    gameOver.setOrigin(umro.getLocalBounds().width / 2.0f,umro.getLocalBounds().height / 2.0f);
+    gameOver.setCharacterSize(24);
+    gameOver.setPosition(screenHeight/2, screenWidth/2);
+
+    // Učitamo teksturu igraca stavimo "setSmooth" na true za anti-aliasing 
     sf::Texture igracTekstura;
     igracTekstura.loadFromFile("igrac.png");
     igracTekstura.setSmooth(true);
@@ -124,10 +138,16 @@ int main()
     kakoTexture.setSmooth(true);
 
     sf::Texture resetTexture;
-    resetTexture.loadFromFile("settings.png");
+    resetTexture.loadFromFile("reset.png");
     resetTexture.setSmooth(true);
 
+    sf::Texture settingsTextureX;
+    settingsTextureX.loadFromFile("audioX.png");
+    settingsTextureX.setSmooth(true);
     // S ovime centriramo kameru na igraća
+    sf::Texture leaveTexture;
+    leaveTexture.loadFromFile("izlazak.png");
+    leaveTexture.setSmooth(true);
     sf::View center;
     
     // Definiramo igraca 
@@ -162,7 +182,6 @@ int main()
     logo.setScale(0.3f,0.3f);
     logo.setOrigin(7.96f,5.56f);
     logo.setPosition(screenHeight/2 -250, (screenWidth/2) - 400);
-    bool runOnce= 1;
 
     sf::Sprite kako;
     kako.setTexture(kakoTexture);
@@ -175,6 +194,12 @@ int main()
     reset.setScale(0.1f,0.1f);
     reset.setOrigin(20.48f,20.48f);
     reset.setPosition(screenHeight/2, screenWidth/2);
+
+    sf::Sprite leave;
+    leave.setTexture(leaveTexture);
+    leave.setScale(0.1f,0.1f);
+    leave.setOrigin(20.48f,20.48f);
+    leave.setPosition(screenHeight/2-200, screenWidth/2);
 
     sf::RectangleShape kvadrat(sf::Vector2f(500.f, 200.f));
     kvadrat.setFillColor(sf::Color::Black);
@@ -190,6 +215,8 @@ int main()
     bool mainMenuActive = true;
     bool soundOn = true;
     bool drawKvadrat = false;
+    bool runOnce = false;
+    bool startTimer = false;
     int menuNum =0 ;
 
     sf::SoundBuffer pucBuffer;
@@ -217,7 +244,7 @@ int main()
     while (window.isOpen())
     {
        
-        window.clear(sf::Color::White);
+        window.clear(sf::Color(141, 150, 144));
         sf::Event event;
         
         // Dobivamo vrijeme između slićica po sekundi
@@ -243,9 +270,9 @@ int main()
                         menuNum = 1;
                     }
                     if (settings.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
-                        soundOn = false;
+                        soundOn = !soundOn;
                     }
-                }
+                } 
             }
         }
         
@@ -261,39 +288,37 @@ int main()
             kakoIgrati.setPosition(kvadrat.getPosition().x,kvadrat.getPosition().y);
             window.draw(kakoIgrati);
         }
+        if(!soundOn){
+            settings.setTexture(settingsTextureX);
         }
         else{
+            settings.setTexture(settingsTexture);
+        }
+        }
 
+        else if(fileHp != 0){
+        if (!startTimer){
+            timer.restart();
+            startTimer = true;
+        }
         // Kod za kretanje
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)){
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && hp !=0){
             igrac.move(0.f,-500.f * dt);
             
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)){
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) && hp !=0){
             igrac.move(0.f,500.f * dt);
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) && hp !=0){
             igrac.move(-500.f * dt,0.f);
         }      
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)){
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) && hp !=0){
             igrac.move(500.f * dt,0.f);
         }
-
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed){
-                window.close();
-            }
-            else if (event.type == sf::Event::MouseButtonPressed){
-                if (!firedFirstTime && !controlCounter){
-                    firerate.restart();
-                    firedFirstTime =1;
-                }
-                sf::Time elapsed = firerate.getElapsedTime();
-                if (event.mouseButton.button == sf::Mouse::Left){
-                    if (elapsed.asSeconds() > 0.000500 || firedFirstTime){
-                        firedFirstTime = 0;
-                        controlCounter = 1;
+        if(sf::Mouse::isButtonPressed(sf::Mouse::Left)){
+            if (event.mouseButton.button == sf::Mouse::Left){
+                    sf::Time elapsed = firerate.getElapsedTime();
+                    if (elapsed.asSeconds() > 0.3 && hp !=0){
                         bullets.push_back(sf::Sprite(bulletTexture));
                         bullets.back().setOrigin(6.f,6.f);
                         bullets.back().setPosition(igrac.getPosition());
@@ -306,6 +331,36 @@ int main()
                         }
                     }
                 }
+        }
+
+        float xScale = static_cast<float>(event.size.width) / static_cast<float>(screenWidth);
+        float yScale = static_cast<float>(event.size.height) / static_cast<float>(screenHeight);
+
+        while (window.pollEvent(event)){
+            if (event.type == sf::Event::Closed){
+                window.close();
+            }
+            if (event.type == sf::Event::Resized){
+                center.setSize(event.size.width, event.size.height);
+                window.setView(center);
+                float xScale = static_cast<float>(event.size.width) / static_cast<float>(screenWidth);
+                float yScale = static_cast<float>(event.size.height) / static_cast<float>(screenHeight);
+                igrac.setScale(xScale,yScale);
+                igrac.setOrigin(igrac.getLocalBounds().width / 2.f,igrac.getLocalBounds().height / 2.f);
+                file.setScale(xScale,yScale);
+                file.setOrigin(file.getLocalBounds().width / 2.f,file.getLocalBounds().height / 2.f);
+                for(int i = 0;i<virusi.size();i++){
+                    virusi[i].setScale(xScale,yScale);
+                    virusi[i].setOrigin(virusi[i].getLocalBounds().width / 2.f,virusi[i].getLocalBounds().height / 2.f);
+                }
+                for(int i = 0;i<bullets.size();i++){
+                    bullets[i].setScale(xScale,yScale);
+                    bullets[i].setOrigin(bullets[i].getLocalBounds().width / 2.f,bullets[i].getLocalBounds().height / 2.f);
+                }
+                for(int i = 0;i<virusBullets.size();i++){
+                    virusBullets[i].setScale(xScale,yScale);
+                    virusBullets[i].setOrigin(virusBullets[i].getLocalBounds().width / 2.f,virusBullets[i].getLocalBounds().height / 2.f);
+                }
             }
         }
         float dX = window.mapPixelToCoords(sf::Mouse::getPosition(window)).x - igrac.getPosition().x;
@@ -317,7 +372,6 @@ int main()
         health.setPosition(igrac.getPosition().x - 500.f ,igrac.getPosition().y - 500.f);
         health.setString(std::to_string(hp));
         
-        float fr = firerate.restart().asSeconds();
         
         sf::Time getInvFrames = invFrames.getElapsedTime();
 
@@ -342,7 +396,9 @@ int main()
                 virusi[i].move((300 * cos(kutVirusa))*dt,(300 * sin(kutVirusa))*dt);
             }
             if(igrac.getGlobalBounds().intersects(virusi[i].getGlobalBounds()) && getInvFrames.asSeconds() > 1.000000){
-                hp--;
+                if(hp != 0){
+                        hp--;
+                }
                 invFrames.restart();
                 if(soundOn){
                     udaren.play();
@@ -350,7 +406,10 @@ int main()
 
             }
             if(file.getGlobalBounds().intersects(virusi[i].getGlobalBounds()) && getInvFrames.asSeconds() > 1.000000){
-                fileHp--;
+                if (fileHp !=0){
+                    fileHp--;
+                }
+                
                 invFrames.restart();
                 if(soundOn){
                     udaren.play();
@@ -359,13 +418,8 @@ int main()
             //&& sqrt(pow(fX, 2.0) + pow(fY, 2.0)) < 100)
             if (virusi[i].getTexture() == &virusGunnerTexture){
                 if (sqrt(pow(iX, 2.0) + pow(iY, 2.0)) < 800 ) {
-                    if (!virusFiredFirstTime && !virusControlCounter){
-                    virusFirerate.restart();
-                    virusFiredFirstTime =1;
-                    }
                     sf::Time virusElapsed = virusFirerate.getElapsedTime();
-                    if (event.mouseButton.button == sf::Mouse::Left){
-                        if (virusElapsed.asSeconds() > 0.005000 || virusFiredFirstTime){
+                        if (virusElapsed.asSeconds() > 5.0){
                             virusFiredFirstTime = 0;
                             virusControlCounter = 1;
                             virusBullets.push_back(sf::Sprite(virusBulletTexture));
@@ -377,16 +431,10 @@ int main()
                             virusFirerate.restart();
                             
                         }
-                    }
                 }
                 else if(sqrt(pow(fX, 2.0) + pow(fY, 2.0)) < 800 ){
-                     if (!virusFiredFirstTime && !virusControlCounter){
-                    virusFirerate.restart();
-                    virusFiredFirstTime =1;
-                    }
                     sf::Time virusElapsed = virusFirerate.getElapsedTime();
-                    if (event.mouseButton.button == sf::Mouse::Left){
-                        if (virusElapsed.asSeconds() > 0.005000 || virusFiredFirstTime){
+                        if (virusElapsed.asSeconds() > 5.0){
                             virusFiredFirstTime = 0;
                             virusControlCounter = 1;
                             virusBullets.push_back(sf::Sprite(virusBulletTexture));
@@ -398,7 +446,6 @@ int main()
                             virusFirerate.restart();
                             
                         }
-                    }
                 }
             }
         }   
@@ -427,28 +474,31 @@ int main()
         for (int i =0;i < virusBullets.size();i++){
             window.draw(virusBullets[i]);
             virusBullets[i].move((800*cos(virusKutovi[i]))*dt,(800*sin(virusKutovi[i]))*dt);
-                if(virusBulletTime[i].getElapsedTime().asSeconds() ==  0.50000){
+                if(virusBulletTime[i].getElapsedTime().asSeconds() ==  5.0){
                         virusBullets.erase(virusBullets.begin() + i);
                         virusBulletTime.erase(virusBulletTime.begin() + i);
                         virusKutovi.erase(virusKutovi.begin() + i);
 
                 }
                 if (virusBullets[i].getGlobalBounds().intersects(igrac.getGlobalBounds()) &&  getInvFrames.asSeconds() > 1.000000){
-                    hp--;
+                    if(hp != 0){
+                        hp--;
+                    }
                     invFrames.restart();
                     if(soundOn){
                     udaren.play();
                     }
                 }
                 if (virusBullets[i].getGlobalBounds().intersects(file.getGlobalBounds()) &&  getInvFrames.asSeconds() > 1.000000){
+                    if (fileHp !=0){
                     fileHp--;
+                }
                     invFrames.restart();
                     if(soundOn){
                         udaren.play();
                     }
                 }
             }
-
         sf::Time rng = randomSpawn.getElapsedTime();
         float intensity = 3.0000;
         if (rng.asSeconds() > intensity){
@@ -457,39 +507,68 @@ int main()
             intensity / 0.90;
             val++;
         }
-        runOnce = 0;
+        
         window.setView(center);
+        // ********************************************************************************************
+        // OVO ZA SADA NE RADI!!! JER JE SFML-OV CLOCK JAKO LOŠE NAPRAVLJEN!
+        // ********************************************************************************************
         if (hp == 0){
-            respawn.restart();
-            sf::Time respawnTime = respawn.getElapsedTime();
-            if (respawnTime.asSeconds() < 5.000000){
+            if (!runOnce){
+                respawnTime = respawn.restart();
+                runOnce= true;
+            }
+            std::cout<<respawnTime.asSeconds()<<std::endl;
+            if (respawnTime.asSeconds() < 5.0){
                 window.draw(umro);
+                umro.setPosition(file.getPosition().x,file.getPosition().y -200);
+                igrac.setPosition(file.getPosition().x,file.getPosition().y);
+            }
+            else {
+                runOnce = false;
+                hp = 3;
             }
         }
         else{
             window.draw(igrac);
         }
         window.draw(health);
-        if (fileHp == 0){
-            window.draw(reset);
-            if(reset.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
-                if (sf::Mouse::isButtonPressed(sf::Mouse::Left)){
-                    virusi.clear();
-                    virusHP.clear();
-                    bullets.clear();
-                    kutovi.clear();
-                    bulletTime.clear();
-                    virusBullets.clear();
-                    virusKutovi.clear();
-                    virusBulletTime.clear();
-                    hp = 3;
-                    fileHp = 10;
-
+        
+    }
+    
+    else {
+        igrac.setPosition(screenHeight/2, screenWidth/2);
+         while (window.pollEvent(event)){
+                if (event.type == sf::Event::Closed){
+                    window.close();
                 }
-            }
+                else if (event.type == sf::Event::MouseButtonReleased){
+                    if(reset.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
+                        if (sf::Mouse::isButtonPressed(sf::Mouse::Left)){
+                            virusi.clear();
+                            virusHP.clear();
+                            bullets.clear();
+                            kutovi.clear();
+                            bulletTime.clear();
+                            virusBullets.clear();
+                            virusKutovi.clear();
+                            virusBulletTime.clear();
+                            hp = 3;
+                            fileHp = 10;
+                            val = 0;
+                            igrac.setPosition(file.getPosition().x,file.getPosition().y);
+                            startTimer =false;
+                        }
+                    }
+                    if (leave.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
+                        window.close();
+                    }
+                }
         }
+        window.draw(reset);
+        window.draw(leave);
+        window.draw(gameOver);
     }
     window.display();
-    }
+}
     return 0;
 }
