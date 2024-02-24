@@ -72,7 +72,7 @@ int main()
 
     sf::Text umro;
     umro.setFont(font);
-    umro.setString(L"Umro si! Dok je još file živ biti ćeš oživljen za 5 sekunda");
+    umro.setString(L"Umro si! Dok je još file živ biti ćeš oživljen za 3 sekunde");
     umro.setOrigin(umro.getLocalBounds().width / 2.0f,umro.getLocalBounds().height / 2.0f);
     umro.setCharacterSize(24);
     umro.setFillColor(sf::Color::Red);
@@ -93,7 +93,7 @@ int main()
 
     sf::Text gameOver;
     gameOver.setFont(font);
-    gameOver.setString(L"File je zaražen od virusa. Ponovo? Dolje je tvoje vrijeme koje si preživio");
+    gameOver.setString(L"File je zaražen od virusa. \nPreživio si sekunda:");
     gameOver.setFillColor(sf::Color::Red);
     gameOver.setOrigin(umro.getLocalBounds().width / 2.0f,umro.getLocalBounds().height / 2.0f);
     gameOver.setCharacterSize(24);
@@ -104,7 +104,7 @@ int main()
     scoreTxt.setFillColor(sf::Color::Red);
     scoreTxt.setOrigin(umro.getLocalBounds().width / 2.0f,umro.getLocalBounds().height / 2.0f);
     scoreTxt.setCharacterSize(24);
-    scoreTxt.setPosition(screenHeight/2, screenWidth/2);
+    scoreTxt.setPosition(screenHeight/2 + 230, screenWidth/2-270);
 
 
     // Učitamo teksturu igraca stavimo "setSmooth" na true za anti-aliasing 
@@ -352,8 +352,6 @@ int main()
                 }
         }
 
-        float xScale = static_cast<float>(event.size.width) / static_cast<float>(screenWidth);
-        float yScale = static_cast<float>(event.size.height) / static_cast<float>(screenHeight);
 
         while (window.pollEvent(event)){
             if (event.type == sf::Event::Closed){
@@ -566,6 +564,8 @@ int main()
                             val = 0;
                             igrac.setPosition(file.getPosition().x,file.getPosition().y);
                             startTimer =false; 
+                            timer.restart();
+                            getScore= false;
                            
                         }
                     if (leave.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
