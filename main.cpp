@@ -1,7 +1,3 @@
-/*Par stvari još trebam dodati a posebno resizanje svega jer kada promjenim velićinu prozora sve se strecha linija:340, 
-virusi se čudno tresu i miću linja:370
-gumb za reset je pre malen jer martin mijenja rezlouciju foramte i ostale stvari
-*/
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include <iostream>
@@ -46,7 +42,7 @@ int main()
     int screenHeight = 800;
 
     // Stvaranje prozora
-    sf::RenderWindow window(sf::VideoMode(screenWidth, screenHeight), "Virus Destroyer");
+    sf::RenderWindow window(sf::VideoMode(screenWidth, screenHeight), "Virus Destroyer",sf::Style::Titlebar | sf::Style::Close);
     window.setFramerateLimit(240);
 
     // Sat za delta time
@@ -57,6 +53,9 @@ int main()
     sf::Clock firerate;
     bool firedFirstTime=0;
     bool controlCounter=0;
+
+    float scoreFlt;
+    int scoreInt;
 
     sf::Clock virusFirerate;
     sf::Time virusElapsed;
@@ -94,11 +93,19 @@ int main()
 
     sf::Text gameOver;
     gameOver.setFont(font);
-    gameOver.setString(L"File je zaražen od virusa.Ponovo?");
+    gameOver.setString(L"File je zaražen od virusa. Ponovo? Dolje je tvoje vrijeme koje si preživio");
     gameOver.setFillColor(sf::Color::Red);
     gameOver.setOrigin(umro.getLocalBounds().width / 2.0f,umro.getLocalBounds().height / 2.0f);
     gameOver.setCharacterSize(24);
-    gameOver.setPosition(screenHeight/2, screenWidth/2);
+    gameOver.setPosition(screenHeight/2, screenWidth/2-300);
+
+    sf::Text scoreTxt;
+    scoreTxt.setFont(font);
+    scoreTxt.setFillColor(sf::Color::Red);
+    scoreTxt.setOrigin(umro.getLocalBounds().width / 2.0f,umro.getLocalBounds().height / 2.0f);
+    scoreTxt.setCharacterSize(24);
+    scoreTxt.setPosition(screenHeight/2, screenWidth/2);
+
 
     // Učitamo teksturu igraca stavimo "setSmooth" na true za anti-aliasing 
     sf::Texture igracTekstura;
@@ -150,6 +157,16 @@ int main()
     leaveTexture.setSmooth(true);
     sf::View center;
     
+    sf::Texture backgroundTexture;
+    backgroundTexture.loadFromFile("bg.png");
+    backgroundTexture.setSmooth(true);
+
+    sf::Sprite background;
+    background.setTexture(backgroundTexture);
+    background.setScale(2.0f,2.0f);
+    background.setOrigin(background.getLocalBounds().width/ 2.0f,background.getLocalBounds().height/ 2.0f);
+    background.setPosition(screenHeight/2, screenWidth/2);
+
     // Definiramo igraca 
     sf::Sprite igrac;
     // za dodavanje igraca
@@ -191,8 +208,8 @@ int main()
 
     sf::Sprite reset;
     reset.setTexture(resetTexture);
-    reset.setScale(0.1f,0.1f);
-    reset.setOrigin(20.48f,20.48f);
+    reset.setScale(0.2f,0.2f);
+    reset.setOrigin(5.12f,5.12f);
     reset.setPosition(screenHeight/2, screenWidth/2);
 
     sf::Sprite leave;
@@ -217,6 +234,8 @@ int main()
     bool drawKvadrat = false;
     bool runOnce = false;
     bool startTimer = false;
+    bool getScore = false;
+    bool collided = false;
     int menuNum =0 ;
 
     sf::SoundBuffer pucBuffer;
@@ -302,17 +321,17 @@ int main()
             startTimer = true;
         }
         // Kod za kretanje
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && hp !=0){
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && hp !=0 && (igrac.getPosition().y) > -924 + screenHeight /2.0f){
             igrac.move(0.f,-500.f * dt);
             
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) && hp !=0){
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) && hp !=0 && (igrac.getPosition().y) < 1124 +screenHeight /2.0f){
             igrac.move(0.f,500.f * dt);
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) && hp !=0){
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) && hp !=0 && (igrac.getPosition().x) > -1120 +screenWidth /2.0f){
             igrac.move(-500.f * dt,0.f);
         }      
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) && hp !=0){
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) && hp !=0 && (igrac.getPosition().x) < 920 +screenWidth /2.0f){
             igrac.move(500.f * dt,0.f);
         }
         if(sf::Mouse::isButtonPressed(sf::Mouse::Left)){
@@ -340,28 +359,6 @@ int main()
             if (event.type == sf::Event::Closed){
                 window.close();
             }
-            if (event.type == sf::Event::Resized){
-                center.setSize(event.size.width, event.size.height);
-                window.setView(center);
-                float xScale = static_cast<float>(event.size.width) / static_cast<float>(screenWidth);
-                float yScale = static_cast<float>(event.size.height) / static_cast<float>(screenHeight);
-                igrac.setScale(xScale,yScale);
-                igrac.setOrigin(igrac.getLocalBounds().width / 2.f,igrac.getLocalBounds().height / 2.f);
-                file.setScale(xScale,yScale);
-                file.setOrigin(file.getLocalBounds().width / 2.f,file.getLocalBounds().height / 2.f);
-                for(int i = 0;i<virusi.size();i++){
-                    virusi[i].setScale(xScale,yScale);
-                    virusi[i].setOrigin(virusi[i].getLocalBounds().width / 2.f,virusi[i].getLocalBounds().height / 2.f);
-                }
-                for(int i = 0;i<bullets.size();i++){
-                    bullets[i].setScale(xScale,yScale);
-                    bullets[i].setOrigin(bullets[i].getLocalBounds().width / 2.f,bullets[i].getLocalBounds().height / 2.f);
-                }
-                for(int i = 0;i<virusBullets.size();i++){
-                    virusBullets[i].setScale(xScale,yScale);
-                    virusBullets[i].setOrigin(virusBullets[i].getLocalBounds().width / 2.f,virusBullets[i].getLocalBounds().height / 2.f);
-                }
-            }
         }
         float dX = window.mapPixelToCoords(sf::Mouse::getPosition(window)).x - igrac.getPosition().x;
         float dY = window.mapPixelToCoords(sf::Mouse::getPosition(window)).y - igrac.getPosition().y;
@@ -376,6 +373,7 @@ int main()
         sf::Time getInvFrames = invFrames.getElapsedTime();
 
         // Ovjde crtamo i posataljamo sve stvari koje nam se žele updateati svaki loop
+        window.draw(background);
         window.draw(file);
         center.setCenter(igrac.getPosition());
         for (int i = 0; i < virusi.size(); i++) {
@@ -415,7 +413,6 @@ int main()
                     udaren.play();
                 }
             }
-            //&& sqrt(pow(fX, 2.0) + pow(fY, 2.0)) < 100)
             if (virusi[i].getTexture() == &virusGunnerTexture){
                 if (sqrt(pow(iX, 2.0) + pow(iY, 2.0)) < 800 ) {
                     sf::Time virusElapsed = virusFirerate.getElapsedTime();
@@ -484,7 +481,11 @@ int main()
                     if(hp != 0){
                         hp--;
                     }
+                    virusBullets.erase(virusBullets.begin() + i);
+                    virusBulletTime.erase(virusBulletTime.begin() + i);
+                    virusKutovi.erase(virusKutovi.begin() + i);
                     invFrames.restart();
+
                     if(soundOn){
                     udaren.play();
                     }
@@ -492,7 +493,10 @@ int main()
                 if (virusBullets[i].getGlobalBounds().intersects(file.getGlobalBounds()) &&  getInvFrames.asSeconds() > 1.000000){
                     if (fileHp !=0){
                     fileHp--;
-                }
+                    }
+                    virusBullets.erase(virusBullets.begin() + i);
+                    virusBulletTime.erase(virusBulletTime.begin() + i);
+                    virusKutovi.erase(virusKutovi.begin() + i);
                     invFrames.restart();
                     if(soundOn){
                         udaren.play();
@@ -509,16 +513,13 @@ int main()
         }
         
         window.setView(center);
-        // ********************************************************************************************
-        // OVO ZA SADA NE RADI!!! JER JE SFML-OV CLOCK JAKO LOŠE NAPRAVLJEN!
-        // ********************************************************************************************
         if (hp == 0){
             if (!runOnce){
-                respawnTime = respawn.restart();
+                respawn.restart();
                 runOnce= true;
             }
-            std::cout<<respawnTime.asSeconds()<<std::endl;
-            if (respawnTime.asSeconds() < 5.0){
+            respawnTime = respawn.getElapsedTime();
+            if (respawnTime.asSeconds() < 3.0){
                 window.draw(umro);
                 umro.setPosition(file.getPosition().x,file.getPosition().y -200);
                 igrac.setPosition(file.getPosition().x,file.getPosition().y);
@@ -536,14 +537,22 @@ int main()
     }
     
     else {
-        igrac.setPosition(screenHeight/2, screenWidth/2);
+        if(!getScore){
+            scoreFlt = timer.restart().asSeconds();
+            scoreInt = (int)scoreFlt;
+            getScore = 1;
+        }
+        
+        scoreTxt.setString(std::to_string(scoreInt));
+        igrac.setPosition(file.getPosition().x,file.getPosition().y);
+        center.setCenter(igrac.getPosition());
+        window.setView(center);
          while (window.pollEvent(event)){
                 if (event.type == sf::Event::Closed){
                     window.close();
                 }
                 else if (event.type == sf::Event::MouseButtonReleased){
                     if(reset.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
-                        if (sf::Mouse::isButtonPressed(sf::Mouse::Left)){
                             virusi.clear();
                             virusHP.clear();
                             bullets.clear();
@@ -556,9 +565,9 @@ int main()
                             fileHp = 10;
                             val = 0;
                             igrac.setPosition(file.getPosition().x,file.getPosition().y);
-                            startTimer =false;
+                            startTimer =false; 
+                           
                         }
-                    }
                     if (leave.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))){
                         window.close();
                     }
@@ -567,6 +576,7 @@ int main()
         window.draw(reset);
         window.draw(leave);
         window.draw(gameOver);
+        window.draw(scoreTxt);
     }
     window.display();
 }
